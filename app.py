@@ -23,7 +23,7 @@ if 'excel_data' not in st.session_state:
 
 # --- PHASE SELECTION MENU ---
 phase_choice = st.selectbox(
-    "🔍 Select the Analysis Phase", 
+    "🔍 Select the Analysis Phase / Sélectionner la phase d'analyse", 
     [
         "Phase 1 (Without Service_age)", 
         "Phase 2 (Without Service_age and Soil_pH)", 
@@ -31,10 +31,10 @@ phase_choice = st.selectbox(
     ]
 )
 
-# Sécurisation de la clé pour charger le modèle sans bug de texte
+# Extraction propre de la clé de phase pour éviter le KeyError
 phase_key = phase_choice.split(" (")[0].strip()
 
-# 1. DYNAMIC LOAD MODEL BASED ON SELECTION
+# 1. DYNAMIC LOAD MODEL
 @st.cache_resource
 def load_model(phase):
     file_mapping = {
@@ -74,7 +74,7 @@ def encode_categorical_data(df):
     return df_encoded
 
 # 3. USER INTERFACE
-tab1, tab2 = st.tabs(["📁 Upload Excel", "✍️ Manual Entry"])
+tab1, tab2 = st.tabs(["📁 Upload Excel", "✍️ Manual Entry / Saisie manuelle"])
 
 with tab1:
     file = st.file_uploader("📁 Upload the Excel data file", type=["xlsx", "csv"])
@@ -84,7 +84,7 @@ with tab1:
         st.session_state.excel_data = None
 
 with tab2:
-    st.write("### ✍️ Manual Data Entry (Enter values directly)")
+    st.write("### ✍️ Manual Data Entry / Saisie manuelle (24 Parameters)")
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -99,13 +99,13 @@ with tab2:
         
     with col2:
         loc_class = st.text_input("Location Class", "1.0")
-        ins = st.text_input("Insulation (YES=1, NO=0)", "YES")
-        pt = st.text_input("Pipe Type (ERW, SAWH, SAWL, SEAMLESS)", "ERW")
-        pp = st.text_input("Pipe Position (ABOVEGROUND, BURIED, RAWA, RIVER CROSSING, ROAD CROSSING)", "ABOVEGROUND")
-        fluid = st.text_input("Fluid Rep (CONDENSATE, GAS, WATER, etc.)", "GAS")
+        ins = st.text_input("Insulation (YES/NO)", "YES")
+        pt = st.text_input("Pipe Type (ERW, SAWH, etc.)", "ERW")
+        pp = st.text_input("Pipe Position (BURIED, etc.)", "ABOVEGROUND")
+        fluid = st.text_input("Fluid Rep (GAS, WATER, etc.)", "GAS")
         cof = st.text_input("3oF (A, B, C, D, E)", "A")
-        soil = st.text_input("Soil Resistivity (MILDLY, MODERATELY, VERY, POOR/UNKNOWN)", "MILDLY")
-        coat = st.text_input("Coating (FBE, 3LPE, COAL TAR, NONE)", "FBE")
+        soil = st.text_input("Soil Resistivity", "MILDLY")
+        coat = st.text_input("Coating (FBE, 3LPE, etc.)", "FBE")
 
     with col3:
         var17 = st.text_input("Parameter 17", "1.0")
@@ -117,7 +117,7 @@ with tab2:
         var23 = st.text_input("Parameter 23", "1.0")
         var24 = st.text_input("Parameter 24", "1.0")
 
-    if st.button("💾 Load Manual Data"):
+    if st.button("💾 Load Manual Data / Charger données"):
         data = {
             'NPS (inch)': nps, 'Nominal Thickness (mm)': nom_t, 'Minimum Thickness': min_t,
             'Insulation (YES/NO)': ins, 'Water Cut': wc, 'OverallCR': ocr, 'Soil pH': ph,
@@ -130,84 +130,101 @@ with tab2:
         st.session_state.df_input = pd.DataFrame([data])
         st.success("Manual data loaded!")
 
+# --- EXECUTION ---
 if not st.session_state.df_input.empty:
     df_input = st.session_state.df_input
-    st.write("### 📋 Preview of imported data:")
+    st.write("### 📋 Preview / Aperçu :")
     st.dataframe(df_input.head(3))
     
     if st.button("🚀 Run Diagnostic and Prediction", type="primary"):
         if assets is None:
             st.error(f"The required model file for {phase_key} is missing from the server.")
         else:
-            try:
-                with st.spinner(f"Processing data using {phase_key}..."):
-                    col_mapping = {
-                        'NPS (inch)': 'NPS (inch)',
-                        'Nominal Thickness (mm)': 'Nominal_Thickness',
-                        'Minimum Thickness': 'Minimum_Thickness',
-                        'Insulation (YES/NO)': 'Insulation ',
-                        'Water Cut': 'Water_Cut',
-                        'OverallCR': 'OverallCR', 
-                        'Soil pH': 'Soil_pH',
-                        'CoF': '3oF',
-                        'Design Pressure (psi)': 'Design_Pressure',
-                        'Leak Count': 'Leak_Count',
-                        'Location Class': 'Location_Class'
-                    }
-                    df_prepared = df_input.rename(columns=col_mapping)
-                    df_encoded = encode_categorical_data(df_prepared)
-                    
-                    if phase_key in ["Phase 1", "Phase 2"]:
-                        t_nom = pd.to_numeric(df_encoded.get('Nominal_Thickness', 12.7), errors='coerce').fillna(12.7)
-                        t_min = pd.to_numeric(df_encoded.get('Minimum_Thickness', 9.5), errors='coerce').fillna(9.5)
-                        D = pd.to_numeric(df_encoded.get('NPS (inch)', 508.0), errors='coerce').fillna(508.0)
+            # SÉCURITÉ : Vérification de la validité du fichier Excel importé
+            if "Unnamed: 0" in df_input.columns or "Étiquettes de lignes" in df_input.columns:
+                st.error("🚨 Error: The uploaded file structure is invalid. It looks like a Pivot Table (Tableau Croisé Dynamique). Please upload a file containing raw tabular structured parameters.")
+            else:
+                try:
+                    with st.spinner(f"Processing data using {phase_key}..."):
+                        col_mapping = {
+                            'NPS (inch)': 'NPS (inch)',
+                            'Nominal Thickness (mm)': 'Nominal_Thickness',
+                            'Minimum Thickness': 'Minimum_Thickness',
+                            'Insulation (YES/NO)': 'Insulation ',
+                            'Water Cut': 'Water_Cut',
+                            'OverallCR': 'OverallCR', 
+                            'Soil pH': 'Soil_pH',
+                            'CoF': '3oF',
+                            'Design Pressure (psi)': 'Design_Pressure',
+                            'Leak Count': 'Leak_Count',
+                            'Location Class': 'Location_Class'
+                        }
+                        df_prepared = df_input.rename(columns=col_mapping)
+                        df_encoded = encode_categorical_data(df_prepared)
                         
-                        L = t_nom * 0.20
-                        d = t_nom - t_min 
-                        
-                        df_encoded['severity_ratio'] = np.where(t_nom > 0, d / t_nom, 0)
-                        
-                        z = np.where((D * t_nom) > 0, (L**2) / (D * t_nom), 1.0)
-                        M = np.where(z <= 50, 0.032 * z + 3.3, np.sqrt(1 + 0.48 * z - 0.003375 * (z**2)))
-                        num = 1 - 0.85 * np.where(t_nom > 0, d / t_nom, 0)
-                        den = 1 - 0.85 * np.where((M * t_nom) > 0, d / (M * t_nom), 1)
-                        df_encoded['asme_b31g'] = np.where(den != 0, num / den, 1.0)
-
-                    model = assets['model']
-                    scaler = assets['scaler']
-                    expected_features = assets['feature_names']
-                    
-                    final_df = pd.DataFrame(index=df_encoded.index)
-                    for col in expected_features:
-                        if col in df_encoded.columns:
-                            final_df[col] = pd.to_numeric(df_encoded[col], errors='coerce')
-                        else:
-                            final_df[col] = 1.0 
+                        # Résolution définitive du bug '.fillna' sur objet Float scalar
+                        if phase_key in ["Phase 1", "Phase 2"]:
+                            if 'Nominal_Thickness' in df_encoded.columns:
+                                t_nom = pd.to_numeric(df_encoded['Nominal_Thickness'], errors='coerce').fillna(12.7)
+                            else:
+                                t_nom = pd.Series(12.7, index=df_encoded.index)
+                                
+                            if 'Minimum_Thickness' in df_encoded.columns:
+                                t_min = pd.to_numeric(df_encoded['Minimum_Thickness'], errors='coerce').fillna(9.5)
+                            else:
+                                t_min = pd.Series(9.5, index=df_encoded.index)
+                                
+                            if 'NPS (inch)' in df_encoded.columns:
+                                D = pd.to_numeric(df_encoded['NPS (inch)'], errors='coerce').fillna(508.0)
+                            else:
+                                D = pd.Series(508.0, index=df_encoded.index)
                             
-                    final_df = final_df.fillna(1.0)
-                    
-                    # Calcul des prédictions
-                    predictions = model.predict(scaler.transform(final_df))
-                    rounded_preds = np.round(predictions, 2)
-                    
-                    # 1. Dataset Original + Résultats
-                    df_result = df_input.copy()
-                    df_result.insert(0, 'ESTIMATED LIFE (YEARS)', rounded_preds)
-                    st.session_state.df_result = df_result
-                    
-                    # 2. Dataset Transformé + Résultats
-                    df_encoded_result = final_df.copy()
-                    df_encoded_result.insert(0, 'ESTIMATED LIFE (YEARS)', rounded_preds)
-                    
-                    # Génération de l'Excel avec 2 onglets différents
-                    excel_buffer = BytesIO()
-                    with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-                        df_result.to_excel(writer, index=False, sheet_name='Original_Predictions')
-                        df_encoded_result.to_excel(writer, index=False, sheet_name='Encoded_Predictions')
-                    st.session_state.excel_data = excel_buffer.getvalue()
-                    
-            except Exception as e:
-                st.error(f"An error occurred during the calculation: {e}")
+                            L = t_nom * 0.20
+                            d = t_nom - t_min 
+                            
+                            df_encoded['severity_ratio'] = np.where(t_nom > 0, d / t_nom, 0)
+                            
+                            z = np.where((D * t_nom) > 0, (L**2) / (D * t_nom), 1.0)
+                            M = np.where(z <= 50, 0.032 * z + 3.3, np.sqrt(1 + 0.48 * z - 0.003375 * (z**2)))
+                            num = 1 - 0.85 * np.where(t_nom > 0, d / t_nom, 0)
+                            den = 1 - 0.85 * np.where((M * t_nom) > 0, d / (M * t_nom), 1)
+                            df_encoded['asme_b31g'] = np.where(den != 0, num / den, 1.0)
+
+                        model = assets['model']
+                        scaler = assets['scaler']
+                        expected_features = assets['feature_names']
+                        
+                        final_df = pd.DataFrame(index=df_encoded.index)
+                        for col in expected_features:
+                            if col in df_encoded.columns:
+                                final_df[col] = pd.to_numeric(df_encoded[col], errors='coerce')
+                            else:
+                                final_df[col] = 1.0 
+                                
+                        final_df = final_df.fillna(1.0)
+                        
+                        # Calcul des prédictions
+                        predictions = model.predict(scaler.transform(final_df))
+                        rounded_preds = np.round(predictions, 2)
+                        
+                        # Sheet 1: Original Dataset + Résultats
+                        df_result = df_input.copy()
+                        df_result.insert(0, 'ESTIMATED LIFE (YEARS)', rounded_preds)
+                        st.session_state.df_result = df_result
+                        
+                        # Sheet 2: Encoded Dataset + Résultats
+                        df_encoded_result = final_df.copy()
+                        df_encoded_result.insert(0, 'ESTIMATED LIFE (YEARS)', rounded_preds)
+                        
+                        # Création de l'export Excel multi-onglets
+                        excel_buffer = BytesIO()
+                        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                            df_result.to_excel(writer, index=False, sheet_name='Original_Predictions')
+                            df_encoded_result.to_excel(writer, index=False, sheet_name='Encoded_Predictions')
+                        st.session_state.excel_data = excel_buffer.getvalue()
+                        
+                except Exception as e:
+                    st.error(f"An error occurred during the calculation: {e}")
 
 if st.session_state.df_result is not None:
     st.success("✅ Calculations completed successfully!")
