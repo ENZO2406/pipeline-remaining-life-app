@@ -9,8 +9,8 @@ import xlsxwriter
 
 warnings.filterwarnings('ignore', category=UserWarning)
 
-st.set_page_config(page_title="Pipeline Reliability App", layout="wide")
-st.title("📊 Pipeline Reliability Prediction App")
+st.set_page_config(page_title="Pipeline Remaining life prediction App", layout="wide")
+st.title(" Pipeline Remaining life prediction App")
 st.markdown("---")
 
 # --- APP MEMORY ---
