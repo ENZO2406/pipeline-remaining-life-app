@@ -22,7 +22,17 @@ if 'excel_data' not in st.session_state:
     st.session_state.excel_data = None
 
 # --- PHASE SELECTION MENU ---
-phase_choice = st.selectbox("🔍 Select the Analysis Phase", ["Phase 1(Without Service_age)", "Phase 2(Without Service_age and Soil_pH)", "Phase 3(Without Service_age, Soil_pH, asme_b31g, combinatorial_effect, severity_ratio)"])
+phase_choice = st.selectbox(
+    "🔍 Select the Analysis Phase", 
+    [
+        "Phase 1 (Without Service_age)", 
+        "Phase 2 (Without Service_age and Soil_pH)", 
+        "Phase 3 (Without Service_age, Soil_pH, asme_b31g, combinatorial_effect, severity_ratio)"
+    ]
+)
+
+# Sécurisation de la clé pour charger le modèle sans bug de texte
+phase_key = phase_choice.split(" (")[0].strip()
 
 # 1. DYNAMIC LOAD MODEL BASED ON SELECTION
 @st.cache_resource
@@ -32,9 +42,9 @@ def load_model(phase):
         "Phase 2": "rf_phase_2_assets.pkl",
         "Phase 3": "rf_phase_3_assets.pkl"
     }
-    target_file = file_mapping[phase]
+    target_file = file_mapping.get(phase)
     
-    if os.path.exists(target_file):
+    if target_file and os.path.exists(target_file):
         try:
             return joblib.load(target_file)
         except Exception as e:
@@ -42,7 +52,7 @@ def load_model(phase):
             return None
     return None
 
-assets = load_model(phase_choice)
+assets = load_model(phase_key)
 
 # 2. ENCODING FUNCTION
 def encode_categorical_data(df):
@@ -98,7 +108,6 @@ with tab2:
         coat = st.text_input("Coating (FBE, 3LPE, COAL TAR, NONE)", "FBE")
 
     with col3:
-        # Champs supplémentaires pour atteindre 24 au total
         var17 = st.text_input("Parameter 17", "1.0")
         var18 = st.text_input("Parameter 18", "1.0")
         var19 = st.text_input("Parameter 19", "1.0")
@@ -128,10 +137,10 @@ if not st.session_state.df_input.empty:
     
     if st.button("🚀 Run Diagnostic and Prediction", type="primary"):
         if assets is None:
-            st.error(f"The required model file for {phase_choice} is missing from the server.")
+            st.error(f"The required model file for {phase_key} is missing from the server.")
         else:
             try:
-                with st.spinner(f"Processing data using {phase_choice}..."):
+                with st.spinner(f"Processing data using {phase_key}..."):
                     col_mapping = {
                         'NPS (inch)': 'NPS (inch)',
                         'Nominal Thickness (mm)': 'Nominal_Thickness',
@@ -148,7 +157,7 @@ if not st.session_state.df_input.empty:
                     df_prepared = df_input.rename(columns=col_mapping)
                     df_encoded = encode_categorical_data(df_prepared)
                     
-                    if phase_choice in ["Phase 1", "Phase 2"]:
+                    if phase_key in ["Phase 1", "Phase 2"]:
                         t_nom = pd.to_numeric(df_encoded.get('Nominal_Thickness', 12.7), errors='coerce').fillna(12.7)
                         t_min = pd.to_numeric(df_encoded.get('Minimum_Thickness', 9.5), errors='coerce').fillna(9.5)
                         D = pd.to_numeric(df_encoded.get('NPS (inch)', 508.0), errors='coerce').fillna(508.0)
@@ -177,16 +186,24 @@ if not st.session_state.df_input.empty:
                             
                     final_df = final_df.fillna(1.0)
                     
+                    # Calcul des prédictions
                     predictions = model.predict(scaler.transform(final_df))
+                    rounded_preds = np.round(predictions, 2)
                     
+                    # 1. Dataset Original + Résultats
                     df_result = df_input.copy()
-                    df_result.insert(0, 'ESTIMATED LIFE (YEARS)', np.round(predictions, 2))
-                    
+                    df_result.insert(0, 'ESTIMATED LIFE (YEARS)', rounded_preds)
                     st.session_state.df_result = df_result
                     
+                    # 2. Dataset Transformé + Résultats
+                    df_encoded_result = final_df.copy()
+                    df_encoded_result.insert(0, 'ESTIMATED LIFE (YEARS)', rounded_preds)
+                    
+                    # Génération de l'Excel avec 2 onglets différents
                     excel_buffer = BytesIO()
                     with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-                        df_result.to_excel(writer, index=False, sheet_name='Predictions')
+                        df_result.to_excel(writer, index=False, sheet_name='Original_Predictions')
+                        df_encoded_result.to_excel(writer, index=False, sheet_name='Encoded_Predictions')
                     st.session_state.excel_data = excel_buffer.getvalue()
                     
             except Exception as e:
@@ -198,9 +215,9 @@ if st.session_state.df_result is not None:
     st.dataframe(st.session_state.df_result)
 
     st.download_button(
-        label="📥 Download Results (Excel File)",
+        label="📥 Download Complete Results (Multi-Sheet Excel File)",
         data=st.session_state.excel_data,
-        file_name=f"predictions_{phase_choice.lower().replace(' ', '_')}.xlsx",
+        file_name=f"predictions_{phase_key.lower().replace(' ', '_')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         type="primary"
     )
