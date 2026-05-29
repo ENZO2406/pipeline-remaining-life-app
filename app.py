@@ -22,7 +22,7 @@ if 'excel_data' not in st.session_state:
     st.session_state.excel_data = None
 
 # --- PHASE SELECTION MENU ---
-phase_choice = st.selectbox("🔍 Select the Analysis Phase", ["Phase 1", "Phase 2", "Phase 3"])
+phase_choice = st.selectbox("🔍 Select the Analysis Phase", ["Phase 1(Without Service_age)", "Phase 2(Without Service_age and Soil_pH)", "Phase 3(Without Service_age, Soil_pH, asme_b31g, combinatorial_effect, severity_ratio)"])
 
 # 1. DYNAMIC LOAD MODEL BASED ON SELECTION
 @st.cache_resource
