@@ -10,7 +10,47 @@ import xlsxwriter
 warnings.filterwarnings('ignore', category=UserWarning)
 
 st.set_page_config(page_title="Pipeline Remaining life prediction App", layout="wide")
-st.title(" Pipeline Remaining life prediction App")
+st.title("📊 Pipeline Remaining life prediction App")
+st.markdown("---")
+
+# --- BLOC : INFORMATIONS ET PERFORMANCES DES MODÈLES ---
+with st.expander("ℹ️ Model Information & Evaluation Metrics / Infos et Performances"):
+    col_info1, col_info2 = st.columns(2)
+    
+    with col_info1:
+        st.markdown("""
+        ### ⚙️ Technical Details & Hyperparameters
+        * **Model Used:** Random Forest Regressor
+        * **Number of Parameters:** 24 input parameters (Categorical & Numerical)
+        
+        **Optimized Hyperparameters (GridSearch):**
+        * 🟢 **Phase 1:** `n_estimators=200`, `max_depth=10`, `max_features='sqrt'`, `min_samples_leaf=5`, `min_samples_split=10`, `bootstrap=True`
+        * 🔵 **Phase 2:** `n_estimators=150`, `max_depth=10`, `max_features='sqrt'`, `min_samples_leaf=7`, `min_samples_split=20`
+        * 🟠 **Phase 3:** `n_estimators=100`, `max_depth=8`, `max_features='sqrt'`, `min_samples_leaf=10`, `min_samples_split=30`
+        """)
+        
+    with col_info2:
+        st.markdown("""
+        ### 📂 Dataset Overview
+        * **Data Sources:** In-line Inspection (ILI) data, Soil analysis reports
+        * **Framework Standards:** Compliant with API 579-1 / ASME FFS-1 & API 580 RBI methodologies
+        * **Cross-Validation:** 5-Fold Cross-Validation (CV)
+        """)
+
+    st.markdown("### 📊 Model Performance Evaluation by Phase")
+    
+    st.markdown("""
+    | Evaluation Metric | Phase 1 <br> *(Without Service_age)* | Phase 2 <br> *(Without Service_age, Soil_pH)* | Phase 3 <br> *(Without Age, pH, asme_b31g, combinatorial, severity)* |
+    | :--- | :---: | :---: | :---: |
+    | **r² CV** | 0.9670 | 0.9615 | 0.9312 |
+    | **r² Train** | 0.9693 | 0.9630 | 0.9334 |
+    | **r² Val** | 0.9663 | 0.9601 | 0.9306 |
+    | **r² Test** | 0.9675 | 0.9618 | 0.9350 |
+    | **MAE** | 2.0336 | 2.2648 | 3.3504 |
+    | **RMSE** | 3.7800 | 4.0983 | 5.3463 |
+    | **MAPE** | 2.39% | 2.67% | 4.08% |
+    """)
+
 st.markdown("---")
 
 # --- APP MEMORY ---
@@ -31,7 +71,6 @@ phase_choice = st.selectbox(
     ]
 )
 
-# Extraction propre de la clé de phase pour éviter le KeyError
 phase_key = phase_choice.split(" (")[0].strip()
 
 # 1. DYNAMIC LOAD MODEL
@@ -133,16 +172,26 @@ with tab2:
 # --- EXECUTION ---
 if not st.session_state.df_input.empty:
     df_input = st.session_state.df_input
+    
+    st.write("### 📊 Imported Data Characteristics / Caractéristiques du fichier")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric(label="Total Rows / Nombre de lignes", value=f"{df_input.shape[0]:,}")
+    with c2:
+        st.metric(label="Total Columns / Nombre de variables", value=df_input.shape[1])
+    with c3:
+        total_missing = int(df_input.isna().sum().sum())
+        st.metric(label="Missing Values / Valeurs manquantes", value=total_missing, delta="- OK" if total_missing == 0 else "⚠️ Check data")
+        
     st.write("### 📋 Preview / Aperçu :")
     st.dataframe(df_input.head(3))
     
     if st.button("🚀 Run Diagnostic and Prediction", type="primary"):
         if assets is None:
-            st.error(f"The required model file for {phase_key} is missing from the server.")
+            st.error(f"The required model file for {phase_key} is missing or could not be loaded on the server.")
         else:
-            # SÉCURITÉ : Vérification de la validité du fichier Excel importé
             if "Unnamed: 0" in df_input.columns or "Étiquettes de lignes" in df_input.columns:
-                st.error("🚨 Error: The uploaded file structure is invalid. It looks like a Pivot Table (Tableau Croisé Dynamique). Please upload a file containing raw tabular structured parameters.")
+                st.error("🚨 Error: The uploaded file structure is invalid. It looks like a Pivot Table. Please upload a file containing raw tabular structured parameters.")
             else:
                 try:
                     with st.spinner(f"Processing data using {phase_key}..."):
@@ -162,7 +211,6 @@ if not st.session_state.df_input.empty:
                         df_prepared = df_input.rename(columns=col_mapping)
                         df_encoded = encode_categorical_data(df_prepared)
                         
-                        # Résolution définitive du bug '.fillna' sur objet Float scalar
                         if phase_key in ["Phase 1", "Phase 2"]:
                             if 'Nominal_Thickness' in df_encoded.columns:
                                 t_nom = pd.to_numeric(df_encoded['Nominal_Thickness'], errors='coerce').fillna(12.7)
@@ -178,7 +226,7 @@ if not st.session_state.df_input.empty:
                                 D = pd.to_numeric(df_encoded['NPS (inch)'], errors='coerce').fillna(508.0)
                             else:
                                 D = pd.Series(508.0, index=df_encoded.index)
-                            
+                                
                             L = t_nom * 0.20
                             d = t_nom - t_min 
                             
