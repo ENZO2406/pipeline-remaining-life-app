@@ -219,8 +219,8 @@ if not st.session_state.df_input.empty:
                         # Création de l'export Excel multi-onglets
                         excel_buffer = BytesIO()
                         with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-                            df_result.to_excel(writer, index=False, sheet_name='Original_Predictions')
-                            df_encoded_result.to_excel(writer, index=False, sheet_name='Encoded_Predictions')
+                            df_result.to_excel(writer, index=False, sheet_name='Original_Dataset_prediction')
+                            df_encoded_result.to_excel(writer, index=False, sheet_name='Dataset_used_by_the_model')
                         st.session_state.excel_data = excel_buffer.getvalue()
                         
                 except Exception as e:
