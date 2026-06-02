@@ -38,9 +38,9 @@ phase_key = phase_choice.split(" (")[0].strip()
 @st.cache_resource
 def load_model(phase):
     file_mapping = {
-        "Phase 1 ": "rf_phase_1_assets.pkl",
-        "Phase 2 ": "rf_phase_2_assets.pkl",
-        "Phase 3 ": "rf_phase_3_assets.pkl"
+        "Phase 1": "rf_phase_1_assets.pkl",
+        "Phase 2": "rf_phase_2_assets.pkl",
+        "Phase 3": "rf_phase_3_assets.pkl"
     }
     target_file = file_mapping.get(phase)
     
