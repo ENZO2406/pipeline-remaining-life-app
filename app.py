@@ -24,7 +24,7 @@ if 'excel_data' not in st.session_state:
 
 # --- PHASE SELECTION MENU ---
 phase_choice = st.selectbox(
-    "🔍 Select the Analysis Phase / Sélectionner la phase d'analyse", 
+    "🔍 Select the Analysis Phase", 
     [
         "Phase 1 (Without Service_age)", 
         "Phase 2 (Without Service_age and Soil_pH)", 
@@ -84,7 +84,7 @@ tab_gen, tab_mod, tab1, tab2 = st.tabs([
 ])
 
 # ----------------------------------------------------------------------------
-# ONGLET A : GENERAL INFORMATION
+# TAB A : GENERAL INFORMATION
 # ----------------------------------------------------------------------------
 with tab_gen:
     st.markdown("## 📁 GENERAL INFORMATION")
@@ -94,16 +94,16 @@ with tab_gen:
     col_auth1, col_auth2 = st.columns(2)
     with col_auth1:
         st.info("""
-        **🎓 Student :**
+        **🎓 Student:**
         * **Enzo Roinson**
-        * *University / Program :* IUT of Saint-Malo / Bachelor in Maintenance and Industrial Engineering
+        * *University / Program:* IUT of Saint-Malo / Bachelor in Maintenance and Industrial Engineering
         """)
     with col_auth2:
         st.info("""
-        **💼 Host Company & Supervision :**
-        * **Company :** Dago Engineering (Bali, Indonesia)
-        * *Industrial Supervisors :* Mr. Zasya, Mr. Daffa
-        * *Academic Supervisors :* Ms. Valérie Coste, Mr. Philippe Dauphin
+        **💼 Host Company & Supervision:**
+        * **Company:** Dago Engineering (Bali, Indonesia)
+        * *Industrial Supervisors:* Mr. Zasya, Mr. Daffa
+        * *Academic Supervisors:* Ms. Valérie Coste, Mr. Philippe Dauphin
         """)
         
     st.markdown("### 📝 Project Background")
@@ -126,7 +126,7 @@ with tab_gen:
     * **Safety Enhancement:** Early detection of high-risk corrosion zones.
     """)
     
-    # --- FORMULES EXACTES ET DÉTAILS DE CALCULS ---
+    # --- EXACT FORMULAS AND CALCULATION DETAILS ---
     st.markdown("### 📜 Framework Standards & Mathematical Background")
     st.write("The application does not only rely on AI but also automatically computes standard engineering features during preprocessing, based on international codes:")
     
@@ -137,18 +137,18 @@ with tab_gen:
     st.latex(r"Years = \frac{reserve}{OverallCR}")
     st.latex(r"Remaining\ life = Years - service\ age")
     
-    with st.expander("📝 Détail d'un exemple de calcul API 570"):
+    with st.expander("📝 Show API 570 Calculation Example"):
         st.write("""
-        * **Épaisseur minimale (Minimal thickness)** = 9.5 mm
-        * **Épaisseur originale** = 12.7 mm
-        * **Limite de sécurité (Safety limite)** = 20% de 12.7 mm = 2.54 mm
-        * **Réserve (Reserve)** = 9.5 - 2.54 = **6.96 mm**
+        * **Minimal thickness** = 9.5 mm
+        * **Original thickness** = 12.7 mm
+        * **Safety limit** = 20% of 12.7 mm = 2.54 mm
+        * **Reserve** = 9.5 - 2.54 = **6.96 mm**
         
-        * **Vitesse de corrosion (OverallCR)** = 0.1 mm/year
-        * **Années totales estimées (Years)** = 6.96 / 0.1 = **69.6 ans**
+        * **Overall Corrosion Rate (OverallCR)** = 0.1 mm/year
+        * **Estimated total years (Years)** = 6.96 / 0.1 = **69.6 years**
         
-        * **Âge en service (Service age)** = 20 ans
-        * **Durée de vie restante (Remaining life)** = 69.6 - 20 = **49.6 ans**
+        * **Service age** = 20 years
+        * **Remaining life** = 69.6 - 20 = **49.6 years**
         """)
 
     st.markdown("#### **2. Defect Severity Ratio**")
@@ -199,7 +199,7 @@ with tab_gen:
     """)
 
 # ----------------------------------------------------------------------------
-# ONGLET B : MODEL INFORMATION
+# TAB B : MODEL INFORMATION
 # ----------------------------------------------------------------------------
 with tab_mod:
     st.markdown("## 🤖 MODEL INFORMATION")
@@ -270,11 +270,11 @@ with tab_mod:
     """)
 
 # ----------------------------------------------------------------------------
-# ONGLET 1 : UPLOAD EXCEL (Génération de Template avec Menus Déroulants)
+# TAB 1 : UPLOAD EXCEL (Template Generation with Dropdown Menus)
 # ----------------------------------------------------------------------------
 with tab1:
-    st.markdown("### 📥 1. Download Blank Template / Télécharger un modèle vierge")
-    st.write("Si vous n'avez pas de base de données prête, téléchargez ce modèle. **Les listes de sélection sont intégrées directement dans les cellules du fichier Excel (menus déroulants) !**")
+    st.markdown("### 📥 1. Download Blank Template")
+    st.write("If you don't have a dataset ready, download this template. **Selection lists are integrated directly into the Excel file cells (drop-down menus)!**")
     
     output = BytesIO()
     workbook = xlsxwriter.Workbook(output, {'in_memory': True})
@@ -322,14 +322,14 @@ with tab1:
     workbook.close()
     
     st.download_button(
-        label="📄 Download Excel Template / Télécharger le modèle",
+        label="📄 Download Excel Template",
         data=output.getvalue(),
         file_name="Pipeline_Blank_Template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     
     st.markdown("---")
-    st.markdown("### 📁 2. Upload Data / Importer les données")
+    st.markdown("### 📁 2. Upload Data")
     file = st.file_uploader("📁 Upload the Excel data file", type=["xlsx", "csv"])
     if file:
         st.session_state.df_input = pd.read_excel(file) if file.name.endswith('.xlsx') else pd.read_csv(file)
@@ -337,38 +337,38 @@ with tab1:
         st.session_state.excel_data = None
 
 # ----------------------------------------------------------------------------
-# ONGLET 2 : MANUAL ENTRY (Avec Tableau de Définitions)
+# TAB 2 : MANUAL ENTRY
 # ----------------------------------------------------------------------------
 with tab2:
-    st.write("### ✍️ Manual Data Entry / Saisie manuelle (24 Parameters)")
+    st.write("### ✍️ Manual Data Entry (24 Parameters)")
     
-    # --- NOUVEAU : Menu déroulant expliquant chaque paramètre ---
-    with st.expander("📖 View Parameter Definitions / Voir les définitions des paramètres"):
+    # --- NEW: Dropdown menu explaining each parameter ---
+    with st.expander("📖 View Parameter Definitions"):
         st.markdown("""
-        | Parameter | Définition / Description |
+        | Parameter | Definition / Description |
         | :--- | :--- |
-        | **NPS (inch)** | Nominal Pipe Size (Diamètre nominal du tube en pouces). |
-        | **Nominal Thickness (mm)** | Épaisseur nominale (d'origine) de la paroi du tube. |
-        | **Minimum Thickness** | Épaisseur minimale autorisée avant réparation ou remplacement. |
-        | **Water Cut** | Pourcentage d'eau contenue dans le fluide transporté. |
-        | **OverallCR** | Vitesse de corrosion globale (Overall Corrosion Rate) en mm/an. |
-        | **Soil pH** | Niveau d'acidité ou d'alcalinité du sol environnant. |
-        | **Design Pressure (psi)** | Pression maximale pour laquelle le pipeline a été conçu. |
-        | **Leak Count** | Nombre de fuites enregistrées dans l'historique du pipeline. |
-        | **Operating Temperature (F)** | Température de fonctionnement normale du fluide. |
-        | **Insulation** | Présence d'une isolation thermique (YES/NO). |
-        | **Pipe Type** | Procédé de fabrication du tube (ERW, SEAMLESS, SAWH, SAWL). |
-        | **Pipe Position** | Emplacement du pipeline (Enterré, Aérien, Traversée de rivière, etc.). |
-        | **Fluid Rep** | Nature du fluide transporté (Gaz, Pétrole lourd, Eau, etc.). |
-        | **3oF** | Catégorie de Conséquence de Défaillance (Consequence of Failure) de A à E. |
-        | **Soil Resistivity** | Capacité du sol à résister au courant électrique (indicateur de corrosivité). |
-        | **Flowrate (BFPD)** | Débit du fluide en Barils par Jour (Barrels of Fluid Per Day). |
-        | **Service_Age** | Nombre d'années de service depuis l'installation. |
-        | **HCA** | Indicateur de Zone à Hautes Conséquences (High Consequence Area). |
-        | **Internal CR** | Vitesse de corrosion interne spécifique (mm/an). |
-        | **PoF** | Catégorie de Probabilité de Défaillance (Probability of Failure) de 1 à 5. |
-        | **H2S** | Teneur en sulfure d'hydrogène (gaz très corrosif). |
-        | **Coating** | État ou type du revêtement protecteur externe. |
+        | **NPS (inch)** | Nominal Pipe Size in inches. |
+        | **Nominal Thickness (mm)** | Original nominal wall thickness of the pipe. |
+        | **Minimum Thickness** | Minimum allowable thickness before repair or replacement. |
+        | **Water Cut** | Percentage of water contained in the transported fluid. |
+        | **OverallCR** | Overall Corrosion Rate in mm/year. |
+        | **Soil pH** | Acidity or alkalinity level of the surrounding soil. |
+        | **Design Pressure (psi)** | Maximum pressure for which the pipeline was designed. |
+        | **Leak Count** | Number of leaks recorded in the pipeline's history. |
+        | **Operating Temperature (F)** | Normal operating temperature of the fluid. |
+        | **Insulation** | Presence of thermal insulation (YES/NO). |
+        | **Pipe Type** | Pipe manufacturing process (ERW, SEAMLESS, SAWH, SAWL). |
+        | **Pipe Position** | Location of the pipeline (Buried, Aboveground, River Crossing, etc.). |
+        | **Fluid Rep** | Nature of the transported fluid (Gas, Heavy Oil, Water, etc.). |
+        | **3oF** | Consequence of Failure category from A to E. |
+        | **Soil Resistivity** | Soil's ability to resist electrical current (corrosivity indicator). |
+        | **Flowrate (BFPD)** | Fluid flowrate in Barrels of Fluid Per Day. |
+        | **Service_Age** | Number of years in service since installation. |
+        | **HCA** | High Consequence Area indicator. |
+        | **Internal CR** | Specific internal corrosion rate (mm/year). |
+        | **PoF** | Probability of Failure category from 1 to 5. |
+        | **H2S** | Hydrogen sulfide content (highly corrosive gas). |
+        | **Coating** | Condition or type of external protective coating. |
         """)
     
     star_ph = " :red[*]" if phase_key == "Phase 1" else ""
@@ -387,6 +387,7 @@ with tab2:
         
     with col2:
         loc_class = st.text_input("Operating Temperature (F) :red[*]", "200.0")
+        # Transformation into selectbox for parameters containing options
         ins = st.selectbox("Insulation:red[*]", ["YES", "NO"], index=0)
         pt = st.selectbox("Pipe Type:red[*]", ["ERW", "SAWH", "SAWL", "SEAMLESS"], index=0)
         pp = st.selectbox("Pipe Position:red[*]", ["BURIED", "ABOVEGROUND", "RAWA", "RIVER CROSSING", "ROAD CROSSING"], index=1)
@@ -396,14 +397,15 @@ with tab2:
         
     with col3:
         flow = st.text_input("Flowrate (BFPD) :red[*]", "416676.0")
-        age = st.text_input("Service_Age", "73") 
+        age = st.text_input("Service_Age", "73") # Never a star
         hca = st.text_input("HCA :red[*]", "1")
         internal = st.text_input("Internal CR :red[*]", "0.017119")
+        # Transformation into selectbox for PoF and Coating
         pof = st.selectbox("PoF:red[*]", ["1", "2", "3", "4", "5"], index=0)
         h2s = st.text_input("H2S :red[*]", "1.0")
         coat = st.selectbox("Coating:red[*]", ["Poor/Unknown", "Bad", "Fair", "Good"], index=0)
 
-    if st.button("💾 Load Manual Data / Charger données"):
+    if st.button("💾 Load Manual Data"):
         data = {
             'NPS (inch)': nps, 'Nominal Thickness (mm)': nom_t, 'Minimum Thickness': min_t,
             'Insulation': ins, 'Water Cut': wc, 'OverallCR': ocr, 'Soil pH': ph,
@@ -417,22 +419,22 @@ with tab2:
         st.success("Manual data loaded!")
 
 # ============================================================================
-# 4. EXECUTION (Avec mise en évidence des résultats)
+# 4. EXECUTION (With highlighted results)
 # ============================================================================
 if not st.session_state.df_input.empty:
     df_input = st.session_state.df_input
     
-    st.write("### 📊 Imported Data Characteristics / Caractéristiques du fichier")
+    st.write("### 📊 Imported Data Characteristics")
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.metric(label="Total Rows / Nombre de lignes", value=f"{df_input.shape[0]:,}")
+        st.metric(label="Total Rows", value=f"{df_input.shape[0]:,}")
     with c2:
-        st.metric(label="Total Columns / Nombre de variables", value=df_input.shape[1])
+        st.metric(label="Total Columns", value=df_input.shape[1])
     with c3:
         total_missing = int(df_input.isna().sum().sum())
-        st.metric(label="Missing Values / Valeurs manquantes", value=total_missing, delta="+ OK" if total_missing == 0 else "⚠️ Check data")
+        st.metric(label="Missing Values", value=total_missing, delta="+ OK" if total_missing == 0 else "⚠️ Check data")
         
-    st.write("### 📋 Preview / Aperçu :")
+    st.write("### 📋 Preview:")
     st.dataframe(df_input.head(3))
     
     if st.button("🚀 Run Diagnostic and Prediction", type="primary"):
@@ -500,31 +502,31 @@ if not st.session_state.df_input.empty:
                                 
                         final_df = final_df.fillna(1.0)
                         
-                        # Calcul des prédictions
+                        # Calculation of predictions
                         predictions = model.predict(scaler.transform(final_df))
                         rounded_preds = np.round(predictions, 2)
                         
-                        # Sheet 1: Original Dataset + Résultats
+                        # Sheet 1: Original Dataset + Results
                         df_result = df_input.copy()
                         df_result.insert(0, 'ESTIMATED LIFE (YEARS)', rounded_preds)
                         st.session_state.df_result = df_result
                         
-                        # Sheet 2: Encoded Dataset + Résultats
+                        # Sheet 2: Encoded Dataset + Results
                         df_encoded_result = final_df.copy()
                         df_encoded_result.insert(0, 'ESTIMATED LIFE (YEARS)', rounded_preds)
                         
-                        # --- Création de l'export Excel multi-onglets avec Mise en Évidence ---
+                        # --- Creation of multi-sheet Excel export with Highlighting ---
                         excel_buffer = BytesIO()
                         with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
                             df_result.to_excel(writer, index=False, sheet_name='Original_Dataset_prediction')
                             df_encoded_result.to_excel(writer, index=False, sheet_name='Dataset_used_by_the_model')
                             
-                            # Accès aux objets du fichier Excel
+                            # Accessing Excel file objects
                             workbook = writer.book
                             worksheet1 = writer.sheets['Original_Dataset_prediction']
                             worksheet2 = writer.sheets['Dataset_used_by_the_model']
                             
-                            # Création du format pour surligner (Fond jaune, texte noir et gras)
+                            # Creating highlight format (Yellow background, bold black text)
                             highlight_format = workbook.add_format({
                                 'bg_color': '#FFC107',
                                 'font_color': 'black',
@@ -532,7 +534,7 @@ if not st.session_state.df_input.empty:
                                 'border': 1
                             })
                             
-                            # Application de la surbrillance à la colonne A (ESTIMATED LIFE)
+                            # Applying highlight to column A (ESTIMATED LIFE)
                             worksheet1.set_column('A:A', 28, highlight_format)
                             worksheet2.set_column('A:A', 28, highlight_format)
                             
@@ -545,7 +547,7 @@ if st.session_state.df_result is not None:
     st.success("✅ Calculations completed successfully!")
     st.write("### 📈 Final Results:")
     
-    # --- NOUVEAU : Mise en évidence de la colonne sur l'interface Streamlit ---
+    # --- NEW: Highlighting the column on the Streamlit interface ---
     styled_result = st.session_state.df_result.style.set_properties(
         subset=['ESTIMATED LIFE (YEARS)'], 
         **{'background-color': '#ffc107', 'color': 'black', 'font-weight': 'bold'}
