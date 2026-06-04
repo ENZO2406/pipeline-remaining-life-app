@@ -6,6 +6,7 @@ import os
 import warnings
 from io import BytesIO
 import xlsxwriter
+import string
 
 warnings.filterwarnings('ignore', category=UserWarning)
 
@@ -120,44 +121,66 @@ with tab_gen:
     
     st.markdown("""
     **📊 Business Benefits:**
-    * **Cost Reduction:** Avoids expensive physical machinery mobilization and excavation unless strictly required. `[Insert estimated % or amount]`
+    * **Cost Reduction:** Avoids expensive physical machinery mobilization and excavation unless strictly required.
     * **Time Optimization:** Provides instant remaining life estimation instead of weeks of field operations.
     * **Safety Enhancement:** Early detection of high-risk corrosion zones.
     """)
     
-    # --- AJOUT DES NOUVELLES ÉQUATIONS ICI ---
+    # --- FORMULES EXACTES ET DÉTAILS DE CALCULS ---
     st.markdown("### 📜 Framework Standards & Mathematical Background")
-    st.markdown("""
-    The application does not only rely on AI but also automatically computes standard engineering features during preprocessing, based on international codes:
-    """)
+    st.write("The application does not only rely on AI but also automatically computes standard engineering features during preprocessing, based on international codes:")
     
-    col_eq1, col_eq2 = st.columns(2)
+    st.markdown("#### **1. API 570 - Remaining Life Assessment**")
+    st.write("First, we have to choose a safety limit, so I've selected the 20% of the original thickness. I chose this rate according to the API 570 standard. Then, we can use the following formula:")
     
-    with col_eq1:
-        st.markdown("**1. API 570 - Remaining Life**")
-        st.latex(r"Remaining\ Life\ (Years) = \frac{t_{actual} - t_{min}}{CR}")
-        st.markdown("""
-        * $t_{actual}$: Actual/Nominal thickness (mm)
-        * $t_{min}$: Minimum allowable thickness (mm)
-        * $CR$: Overall Corrosion Rate (mm/year)
+    st.latex(r"Reserve = Minimal\ thickness - Safety\ limite")
+    st.latex(r"Years = \frac{reserve}{OverallCR}")
+    st.latex(r"Remaining\ life = Years - service\ age")
+    
+    with st.expander("📝 Détail d'un exemple de calcul API 570"):
+        st.write("""
+        * **Épaisseur minimale (Minimal thickness)** = 9.5 mm
+        * **Épaisseur originale** = 12.7 mm
+        * **Limite de sécurité (Safety limite)** = 20% de 12.7 mm = 2.54 mm
+        * **Réserve (Reserve)** = 9.5 - 2.54 = **6.96 mm**
+        
+        * **Vitesse de corrosion (OverallCR)** = 0.1 mm/year
+        * **Années totales estimées (Years)** = 6.96 / 0.1 = **69.6 ans**
+        
+        * **Âge en service (Service age)** = 20 ans
+        * **Durée de vie restante (Remaining life)** = 69.6 - 20 = **49.6 ans**
         """)
 
-    with col_eq2:
-        st.markdown("**2. Defect Severity Ratio**")
-        st.latex(r"Severity\ Ratio = \frac{d}{t_{nom}}")
-        st.markdown("""
-        * $d$: Defect depth (calculated as $t_{nom} - t_{min}$)
-        * Represents the percentage of wall thickness lost to corrosion.
-        """)
-        
-    st.markdown("**3. ASME B31G (Remaining Strength Factor - RSF)**")
-    st.write("To evaluate the structural integrity of the corroded section, the app computes the modified ASME B31G standard ratio:")
-    st.latex(r"ASME\ B31G\ (RSF) = \frac{1 - 0.85 \left(\frac{d}{t_{nom}}\right)}{1 - 0.85 \left(\frac{d}{M \cdot t_{nom}}\right)}")
+    st.markdown("#### **2. Defect Severity Ratio**")
+    st.write("The severity ratio is calculated to determine the criticality of the defect. This parameter shows the rate of deterioration. To calculate this parameter, I refer to the ASME B31G standard to find the appropriate calculation method. Therefore, I use the following method:")
+    
+    st.latex(r"Depth = Nominal\ thickness - Minimum\ Thickness")
+    st.latex(r"Ratio = \frac{Depth}{Nominal\ Thickness}")
+
+    st.markdown("#### **3. ASME B31G (Folias Factor & Remaining Strength Factor)**")
+    
+    st.write("Calculation of the Folias factor (M):")
+    st.latex(r"z = \left(\frac{L^2}{D \cdot t}\right)")
+    
+    col_m1, col_m2 = st.columns(2)
+    with col_m1:
+        st.markdown("**For the short default ( $z < 50$ )**")
+        st.latex(r"M = 0{,}032\left(\frac{L^2}{D \cdot t}\right) + 3{,}3")
+    with col_m2:
+        st.markdown("**For the long default ( $z > 50$ )**")
+        st.latex(r"M = \sqrt{1 + 0{,}48\left(\frac{L^2}{D \cdot t}\right) - 0{,}003375\left(\frac{L^2}{D \cdot t}\right)^2}")
+
     st.markdown("""
-    * $M$: Folias Factor (Bulging factor), a complex geometrical parameter calculated using the defect length ($L$), pipeline diameter ($D$), and nominal thickness ($t_{nom}$).
+    * **L** is the length of the defect
+    * **D** is the pipe diameter
+    * **t** is the nominal wall thickness of the pipe
     """)
     
-    # --- EXPLICATION DE L'UTILISATION ET DES PHASES ---
+    st.write("After calculating the **Folias factor (M)**, we can calculate the **RSF (Remaining Strength Factor)**. The RSF represents the ratio between the burst pressure of the corroded pipe and that of an intact pipe. We use the following formula:")
+    st.latex(r"RSF = \frac{1 - 0{,}85\left(\frac{d}{t}\right)}{1 - 0{,}85\left(\frac{d}{M \cdot t}\right)}")
+    st.markdown("*(Note: $d$ represents the Depth of the defect calculated previously)*")
+    
+    st.markdown("---")
     st.markdown("### 🖥️ How to use this App & Phase Selection")
     st.write("""
     This application allows you to evaluate pipelines either individually (**Manual Entry** tab) or in bulk by uploading a dataset (**Upload Excel** tab). 
@@ -247,9 +270,66 @@ with tab_mod:
     """)
 
 # ----------------------------------------------------------------------------
-# ONGLET 1 : UPLOAD EXCEL
+# ONGLET 1 : UPLOAD EXCEL (Génération de Template avec Menus Déroulants)
 # ----------------------------------------------------------------------------
 with tab1:
+    st.markdown("### 📥 1. Download Blank Template / Télécharger un modèle vierge")
+    st.write("Si vous n'avez pas de base de données prête, téléchargez ce modèle. **Les listes de sélection sont intégrées directement dans les cellules du fichier Excel (menus déroulants) !**")
+    
+    output = BytesIO()
+    workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+    worksheet = workbook.add_worksheet('Data_Template')
+    
+    template_columns = {
+        'NPS (inch)': None,
+        'Nominal Thickness (mm)': None,
+        'Minimum Thickness': None,
+        'Insulation (YES/NO)': ['YES', 'NO'],
+        'Water Cut': None,
+        'OverallCR': None,
+        'Soil pH': None,
+        'CoF': ['A', 'B', 'C', 'D', 'E'],
+        'Design Pressure (psi)': None,
+        'Leak Count': None,
+        'Location Class': None,
+        'Pipe Type': ['ERW', 'SAWH', 'SAWL', 'SEAMLESS'],
+        'Pipe Position': ['BURIED', 'ABOVEGROUND', 'RAWA', 'RIVER CROSSING', 'ROAD CROSSING'],
+        'Fluid Representative': ['GAS', 'WATER', 'CONDENSATE', 'FOUL FLUID', 'HEAVY OIL', 'LIGHT OIL', 'STEAM'],
+        'Soil Resistivity': ['MILDLY', 'MILDLY/MODERATELY', 'MODERATELY', 'VERY'],
+        'Coating': ['Poor/Unknown', 'Bad', 'Fair', 'Good'],
+        'Flowrate (BFPD)': None,
+        'Service_Age': None,
+        'HCA': None,
+        'Internal CR': None,
+        'PoF': ['1', '2', '3', '4', '5'],
+        'H2S': None
+    }
+    
+    header_format = workbook.add_format({'bold': True, 'bg_color': '#1f4e78', 'font_color': 'white', 'align': 'center', 'border': 1})
+    excel_cols = list(string.ascii_uppercase)
+    
+    for col_num, (col_name, dropdown_options) in enumerate(template_columns.items()):
+        worksheet.write(0, col_num, col_name, header_format)
+        worksheet.set_column(col_num, col_num, 22)
+        
+        if dropdown_options:
+            col_letter = excel_cols[col_num]
+            worksheet.data_validation(f'{col_letter}2:{col_letter}1000', {
+                'validate': 'list',
+                'source': dropdown_options
+            })
+            
+    workbook.close()
+    
+    st.download_button(
+        label="📄 Download Excel Template / Télécharger le modèle",
+        data=output.getvalue(),
+        file_name="Pipeline_Blank_Template.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    
+    st.markdown("---")
+    st.markdown("### 📁 2. Upload Data / Importer les données")
     file = st.file_uploader("📁 Upload the Excel data file", type=["xlsx", "csv"])
     if file:
         st.session_state.df_input = pd.read_excel(file) if file.name.endswith('.xlsx') else pd.read_csv(file)
@@ -257,12 +337,40 @@ with tab1:
         st.session_state.excel_data = None
 
 # ----------------------------------------------------------------------------
-# ONGLET 2 : MANUAL ENTRY
+# ONGLET 2 : MANUAL ENTRY (Avec Tableau de Définitions)
 # ----------------------------------------------------------------------------
 with tab2:
     st.write("### ✍️ Manual Data Entry / Saisie manuelle (24 Parameters)")
     
-    # L'étoile rouge sur le pH s'affiche UNIQUEMENT si la Phase 1 est sélectionnée dans le menu déroulant !
+    # --- NOUVEAU : Menu déroulant expliquant chaque paramètre ---
+    with st.expander("📖 View Parameter Definitions / Voir les définitions des paramètres"):
+        st.markdown("""
+        | Parameter | Définition / Description |
+        | :--- | :--- |
+        | **NPS (inch)** | Nominal Pipe Size (Diamètre nominal du tube en pouces). |
+        | **Nominal Thickness (mm)** | Épaisseur nominale (d'origine) de la paroi du tube. |
+        | **Minimum Thickness** | Épaisseur minimale autorisée avant réparation ou remplacement. |
+        | **Water Cut** | Pourcentage d'eau contenue dans le fluide transporté. |
+        | **OverallCR** | Vitesse de corrosion globale (Overall Corrosion Rate) en mm/an. |
+        | **Soil pH** | Niveau d'acidité ou d'alcalinité du sol environnant. |
+        | **Design Pressure (psi)** | Pression maximale pour laquelle le pipeline a été conçu. |
+        | **Leak Count** | Nombre de fuites enregistrées dans l'historique du pipeline. |
+        | **Operating Temperature (F)** | Température de fonctionnement normale du fluide. |
+        | **Insulation** | Présence d'une isolation thermique (YES/NO). |
+        | **Pipe Type** | Procédé de fabrication du tube (ERW, SEAMLESS, SAWH, SAWL). |
+        | **Pipe Position** | Emplacement du pipeline (Enterré, Aérien, Traversée de rivière, etc.). |
+        | **Fluid Rep** | Nature du fluide transporté (Gaz, Pétrole lourd, Eau, etc.). |
+        | **3oF** | Catégorie de Conséquence de Défaillance (Consequence of Failure) de A à E. |
+        | **Soil Resistivity** | Capacité du sol à résister au courant électrique (indicateur de corrosivité). |
+        | **Flowrate (BFPD)** | Débit du fluide en Barils par Jour (Barrels of Fluid Per Day). |
+        | **Service_Age** | Nombre d'années de service depuis l'installation. |
+        | **HCA** | Indicateur de Zone à Hautes Conséquences (High Consequence Area). |
+        | **Internal CR** | Vitesse de corrosion interne spécifique (mm/an). |
+        | **PoF** | Catégorie de Probabilité de Défaillance (Probability of Failure) de 1 à 5. |
+        | **H2S** | Teneur en sulfure d'hydrogène (gaz très corrosif). |
+        | **Coating** | État ou type du revêtement protecteur externe. |
+        """)
+    
     star_ph = " :red[*]" if phase_key == "Phase 1" else ""
 
     col1, col2, col3 = st.columns(3)
@@ -279,26 +387,26 @@ with tab2:
         
     with col2:
         loc_class = st.text_input("Operating Temperature (F) :red[*]", "200.0")
-        ins = st.text_input("Insulation (YES/NO) :red[*]", "YES")
-        pt = st.text_input("Pipe Type (ERW, SAWH, SAWL, SEAMLESS) :red[*]", "ERW")
-        pp = st.text_input("Pipe Position (BURIED, ABOVEGROUND, RAWA, RIVER CROSSING, ROAD CROSSING) :red[*]", "ABOVEGROUND")
-        fluid = st.text_input("Fluid Rep (GAS, WATER, CONDENSATE, FOUL FLUID, HEAVY OIL, LIGHT OIL, STEAM) :red[*]", "GAS")
-        cof = st.text_input("3oF (A, B, C, D, E) :red[*]", "A")
-        soil = st.text_input("Soil Resistivity(MILDLY, MILDLY/MODERATELY, MODERATELY, VERY) :red[*]", "MILDLY")
+        ins = st.selectbox("Insulation:red[*]", ["YES", "NO"], index=0)
+        pt = st.selectbox("Pipe Type:red[*]", ["ERW", "SAWH", "SAWL", "SEAMLESS"], index=0)
+        pp = st.selectbox("Pipe Position:red[*]", ["BURIED", "ABOVEGROUND", "RAWA", "RIVER CROSSING", "ROAD CROSSING"], index=1)
+        fluid = st.selectbox("Fluid Rep :red[*]", ["GAS", "WATER", "CONDENSATE", "FOUL FLUID", "HEAVY OIL", "LIGHT OIL", "STEAM"], index=0)
+        cof = st.selectbox("3oF:red[*]", ["A", "B", "C", "D", "E"], index=0)
+        soil = st.selectbox("Soil Resistivity:red[*]", ["MILDLY", "MILDLY/MODERATELY", "MODERATELY", "VERY"], index=0)
         
     with col3:
         flow = st.text_input("Flowrate (BFPD) :red[*]", "416676.0")
-        age = st.text_input("Service_Age", "73") # Jamais d'étoile
+        age = st.text_input("Service_Age", "73") 
         hca = st.text_input("HCA :red[*]", "1")
         internal = st.text_input("Internal CR :red[*]", "0.017119")
-        pof = st.text_input("PoF(1, 2, 3, 4, 5) :red[*]", "1")
+        pof = st.selectbox("PoF:red[*]", ["1", "2", "3", "4", "5"], index=0)
         h2s = st.text_input("H2S :red[*]", "1.0")
-        coat = st.text_input("Coating (Poor/Unknown, Bad, Fair, Good ) :red[*]", "FBE")
+        coat = st.selectbox("Coating:red[*]", ["Poor/Unknown", "Bad", "Fair", "Good"], index=0)
 
     if st.button("💾 Load Manual Data / Charger données"):
         data = {
             'NPS (inch)': nps, 'Nominal Thickness (mm)': nom_t, 'Minimum Thickness': min_t,
-            'Insulation (YES/NO)': ins, 'Water Cut': wc, 'OverallCR': ocr, 'Soil pH': ph,
+            'Insulation': ins, 'Water Cut': wc, 'OverallCR': ocr, 'Soil pH': ph,
             'Design Pressure (psi)': pres, 'Leak Count': leak, 'Location Class': loc_class,
             'Pipe Type': pt, 'Pipe Position': pp, 'Fluid Representative': fluid,
             '3oF': cof, 'Soil Resistivity': soil, 'Coating': coat,
@@ -306,11 +414,10 @@ with tab2:
             'PoF': pof, 'H2S': h2s
         }
         st.session_state.df_input = pd.DataFrame([data])
-        st.session_state.df_result = None  # Reset result when new manual data is loaded
         st.success("Manual data loaded!")
 
 # ============================================================================
-# 4. EXECUTION
+# 4. EXECUTION (Avec mise en évidence des résultats)
 # ============================================================================
 if not st.session_state.df_input.empty:
     df_input = st.session_state.df_input
@@ -406,11 +513,29 @@ if not st.session_state.df_input.empty:
                         df_encoded_result = final_df.copy()
                         df_encoded_result.insert(0, 'ESTIMATED LIFE (YEARS)', rounded_preds)
                         
-                        # Création de l'export Excel multi-onglets
+                        # --- Création de l'export Excel multi-onglets avec Mise en Évidence ---
                         excel_buffer = BytesIO()
                         with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
                             df_result.to_excel(writer, index=False, sheet_name='Original_Dataset_prediction')
                             df_encoded_result.to_excel(writer, index=False, sheet_name='Dataset_used_by_the_model')
+                            
+                            # Accès aux objets du fichier Excel
+                            workbook = writer.book
+                            worksheet1 = writer.sheets['Original_Dataset_prediction']
+                            worksheet2 = writer.sheets['Dataset_used_by_the_model']
+                            
+                            # Création du format pour surligner (Fond jaune, texte noir et gras)
+                            highlight_format = workbook.add_format({
+                                'bg_color': '#FFC107',
+                                'font_color': 'black',
+                                'bold': True,
+                                'border': 1
+                            })
+                            
+                            # Application de la surbrillance à la colonne A (ESTIMATED LIFE)
+                            worksheet1.set_column('A:A', 28, highlight_format)
+                            worksheet2.set_column('A:A', 28, highlight_format)
+                            
                         st.session_state.excel_data = excel_buffer.getvalue()
                         
                 except Exception as e:
@@ -419,7 +544,13 @@ if not st.session_state.df_input.empty:
 if st.session_state.df_result is not None:
     st.success("✅ Calculations completed successfully!")
     st.write("### 📈 Final Results:")
-    st.dataframe(st.session_state.df_result)
+    
+    # --- NOUVEAU : Mise en évidence de la colonne sur l'interface Streamlit ---
+    styled_result = st.session_state.df_result.style.set_properties(
+        subset=['ESTIMATED LIFE (YEARS)'], 
+        **{'background-color': '#ffc107', 'color': 'black', 'font-weight': 'bold'}
+    )
+    st.dataframe(styled_result)
 
     st.download_button(
         label="📥 Download Complete Results (Multi-Sheet Excel File)",
