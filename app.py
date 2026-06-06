@@ -131,24 +131,24 @@ with tab_gen:
     st.write("The application does not only rely on AI but also automatically computes standard engineering features during preprocessing, based on international codes:")
     
     st.markdown("#### **1. API 570 - Remaining Life Assessment**")
-    st.write("First, we have to choose a safety limit, so I've selected the 20% of the original thickness. I chose this rate according to the API 570 standard. Then, we can use the following formula:")
+    st.write("First, we have to choose a safety limit, so I've selected the 20% of the nominal thickness. I chose this rate according to the API 570 standard. Then, we can use the following formula:")
     
-    st.latex(r"Reserve = Minimal\ thickness - Safety\ limite")
+    st.latex(r"Reserve = Nominal\ thickness - Safety\ limite")
     st.latex(r"Years = \frac{reserve}{OverallCR}")
     st.latex(r"Remaining\ life = Years - service\ age")
     
     with st.expander("📝 Show API 570 Calculation Example"):
         st.write("""
-        * **Minimal thickness** = 9.5 mm
-        * **Original thickness** = 12.7 mm
-        * **Safety limit** = 20% of 12.7 mm = 2.54 mm
-        * **Reserve** = 9.5 - 2.54 = **6.96 mm**
+        * **Nominal thickness** = 9.5 mm
+        * **Nominal thickness** = 9.5 mm
+        * **Safety limit** = 20% of 9.5 mm = 1.9 mm
+        * **Reserve** = 9.5 - 1.9 = **7.6 mm**
         
         * **Overall Corrosion Rate (OverallCR)** = 0.1 mm/year
-        * **Estimated total years (Years)** = 6.96 / 0.1 = **69.6 years**
+        * **Estimated total years (Years)** = 7.6 / 0.1 = **76 years**
         
         * **Service age** = 20 years
-        * **Remaining life** = 69.6 - 20 = **49.6 years**
+        * **Remaining life** = 76 - 20 = **56 years**
         """)
 
     st.markdown("#### **2. Defect Severity Ratio**")
